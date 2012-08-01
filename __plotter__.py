@@ -818,8 +818,6 @@ class plotter(object) :
 			exp = b*c/float(a)
 			import math
 			expErr = exp*math.sqrt(pow(aerr/float(a),2)+pow(berr/float(b),2)+pow(cerr/float(c),2))
-		print histo.GetName()
-		print a,b,c,d
 		if '_X_' not in sampleName:
 			histo.SetBinContent(2,2,exp) 	 
 			histo.SetBinError(2,2,expErr)
