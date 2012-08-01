@@ -6,6 +6,7 @@ def site() :
          "brown.edu":"bn",
          "cern.ch":"cern",
          "fnal.gov":"fnal",
+	 "della3":"pu",
          }
     hostName = socket.gethostname()
     for match,prefix in d.iteritems() :

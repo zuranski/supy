@@ -802,7 +802,30 @@ class plotter(object) :
     	histo.GetZaxis().SetTitleOffset(1.3)
         if self.doLog : r.gPad.SetLogz()
 
-        histo.Draw("colz" if self.doColzFor2D else "")
+	if histo.GetName().find('counts')>-1:
+                histo.SetMarkerSize(3)
+		a = histo.GetBinContent(1,1)
+		aerr = histo.GetBinError(1,1)
+		b = histo.GetBinContent(1,2)
+		berr = histo.GetBinError(1,2)
+		c = histo.GetBinContent(2,1)
+		cerr = histo.GetBinError(2,1)
+		d = histo.GetBinContent(2,2)
+		derr = histo.GetBinError(2,2)
+		exp = 0
+		expErr = 0
+		if a>0 and b>0 and c>0:
+			exp = b*c/float(a)
+			import math
+			expErr = exp*math.sqrt(pow(aerr/float(a),2)+pow(berr/float(b),2)+pow(cerr/float(c),2))
+		print histo.GetName()
+		print a,b,c,d
+		if '_X_' not in sampleName:
+			histo.SetBinContent(2,2,exp) 	 
+			histo.SetBinError(2,2,expErr)
+                histo.Draw('TEXTE')
+        else:
+	        histo.Draw("colz" if self.doColzFor2D else "")
 
         #plot-specific stuff
         if "deltaHtOverHt_vs_mHtOverHt" in histo.GetName() \
