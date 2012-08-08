@@ -77,29 +77,42 @@ def roundString(val, err, width=None, noSci = False, noErr = False) :
 #####################################
 def dependence(TH2, name="", minimum=-5, maximum=5, inSigma = True) :
     if not TH2: return None
+    if 'counts' in TH2.GetName(): return None
     if TH2.GetDirectory() : TH2.GetDirectory().cd()
-    dep = TH2.Clone(name if name else TH2.GetName()+"_dependence")
+    #dep = TH2.Clone(name if name else TH2.GetName()+"_dependence")
+    dep = TH2.Clone(name+"_dependence" if name else TH2.GetName()+"_dependence")
     dep.SetZTitle("dependence")
-    norm = TH2.Integral()
+    norm = TH2.Integral(1,TH2.GetNbinsX()+1,1,TH2.GetNbinsY()+1)
     projX = TH2.ProjectionX()
     projY = TH2.ProjectionY()
+    binValues = []
+    binErrors = []
+    ndof = 0
     for iX in range(1,TH2.GetNbinsX()+1) :
         for iY in range(1,TH2.GetNbinsY()+1) :
             X = projX.GetBinContent(iX)
             Y = projY.GetBinContent(iY)
             bin = TH2.GetBin(iX,iY)
             XY = TH2.GetBinContent(bin)
+	    if XY: ndof+=1
             dBin = math.log(norm*XY/X/Y) if XY else 0
             eX = projX.GetBinError(iX)
             eY = projX.GetBinError(iY)
             eXY = TH2.GetBinError(bin)
             eBin = math.sqrt((eXY/XY)**2 + (eX/X)**2 + (eY/Y)**2) if XY else 1# faulty assumption of independent errors
             #dep.SetBinContent(bin, min(maximum,max(minimum,math.log(norm*XY/X/Y)/(eBin if eBin and inSigma else 1))) if XY else 0)
-            dep.SetBinContent(bin, min(maximum,max(minimum,dBin/(eBin if eBin and inSigma else 1))) if XY else 0)
-            dep.SetBinError(bin,0)
+            #dep.SetBinContent(bin, min(maximum,max(minimum,dBin/(eBin if eBin and inSigma else 1))) if XY else 0)
+            dep.SetBinContent(bin, min(maximum,max(minimum,dBin)))
+            dep.SetBinError(bin,eBin)
+	    binValues.append(dBin)
+	    binErrors.append(eBin)
     dep.SetMinimum(minimum)
     dep.SetMaximum(maximum)
-    
+    chi2 = sum([val*val/unc/unc for val,unc in zip(binValues,binErrors)])
+    pValue = r.TMath.Prob(chi2,ndof)
+    print sum(binValues)
+    print chi2,ndof,TH2.GetName(), pValue   
+
     return dep
 #####################################
 def intFromBits(bits) :

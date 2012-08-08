@@ -802,7 +802,9 @@ class plotter(object) :
     	histo.GetZaxis().SetTitleOffset(1.3)
         if self.doLog : r.gPad.SetLogz()
 
-	if histo.GetName().find('counts')>-1:
+	if 'dependence' in histo.GetName(): r.gPad.SetLogz(0)
+
+	if 'counts' in histo.GetName():
                 histo.SetMarkerSize(3)
 		a = histo.GetBinContent(1,1)
 		aerr = histo.GetBinError(1,1)
