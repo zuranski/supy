@@ -212,16 +212,34 @@ class Discriminant(secondary) :
         self.book.fill(ev[self.name], self.name, self.bins, 0, 1, title = ";%s;events / bin"%self.name)
         if self.correlations :
             for (key1,val1),(key2,val2) in itertools.combinations(self.dists.iteritems(),2) :
-                self.book.fill( ( max( val1[1], min( val1[2]-1e-6, ev[key1] )),
-                                  max( val2[1], min( val2[2]-1e-6, ev[key2] ))),"_cov_%s_%s"%(key1,key2), *zip(val1,val2), title = ';%s;%s;events / bin'%(key1,key2))
+		if type(ev[key1])!=list:
+                    self.book.fill( ( max( val1[1]+1e-6, min( val1[2]-1e-6, ev[key1] )),
+                                    max( val2[1]+1e-6, min( val2[2]-1e-6, ev[key2] ))),"_cov_%s_%s"%(key1,key2), *zip(val1,val2), title = ';%s;%s;events / bin'%(key1,key2))
+		else:
+		    for var1,var2 in zip(ev[key1],ev[key2]):
+                        self.book.fill( ( max( val1[1], min( val1[2]-1e-6, var1 )),
+                                         max( val2[1], min( val2[2]-1e-6, var2 ))),"_cov_%s_%s"%(key1,key2), *zip(val1,val2), title = ';%s;%s;events / bin'%(key1,key2))
 
     def likelihoodRatio(self,key) :
         hist = self.likelihoodRatios[key]
-        return 0.5 if not hist else hist.GetBinContent(hist.FindFixBin(self.source[key]))
+        if not hist: return 0.5
+	if type(self.source[key])==list:
+	    return [hist.GetBinContent(hist.FindFixBin(var)) for var in self.source[key]]
+	else:
+	    return hist.GetBinContent(hist.FindFixBin(self.source[key]))
 
     def update(self,_) :
-        likelihoodRatios = [self.likelihoodRatio(key) for key in self.dists]
-        self.value = 1. / ( 1 + reduce(operator.mul, likelihoodRatios, 1) )
+
+	if type(self.likelihoodRatio(self.dists.keys()[0]))==list:
+		N = len(self.likelihoodRatio(self.dists.keys()[0]))
+		likelihoodRatios = [[] for i in range(N)]
+		for i in range(N):
+			for key in self.dists:
+				likelihoodRatios[i].append(self.likelihoodRatio(key)[i])
+        	self.value = [1. / ( 1 + reduce(operator.mul, likelihoodRatios[i], 1) ) for i in range(N)]
+	else:
+        	likelihoodRatios = [self.likelihoodRatio(key) for key in self.dists]
+		self.value = 1. / ( 1 + reduce(operator.mul, likelihoodRatios, 1) )
 
     def organize(self,org) :
         [ org.mergeSamples( targetSpec = {'name':item['pre']}, sources = item['samples'], scaleFactors = item['sf'] if 'sf' in item else [], force = True) if item['samples'] else

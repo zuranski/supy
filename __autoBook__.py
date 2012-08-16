@@ -25,7 +25,20 @@ class autoBook(dict) :
             for i,label in enumerate(yAxisLabels) :
                 self[name].GetYaxis().SetBinLabel(i+1, label)
 
-        if    type(x)!=tuple : self[name].Fill(x,w)
-        elif  type(N)!=tuple : self[name].Fill(x[0],x[1],w)
-        elif  len(N)==2      : self[name].Fill(x[0],x[1],w)
-        else                 : self[name].Fill(x[0],x[1],x[2],w)
+
+        if    type(x)!=tuple:
+		if type(x)==list:
+			for x_i in x: self[name].Fill(x_i,w)
+		else: self[name].Fill(x,w)
+        elif  type(N)!=tuple:
+		if type(x[0])==list:
+			for x0,x1 in zip(x[0],x[1]): self[name].Fill(x0,x1,w)
+		else : self[name].Fill(x[0],x[1],w)
+        elif  len(N)==2:
+		if type(x[0])==list:
+			for x0,x1 in zip(x[0],x[1]): self[name].Fill(x0,x1,w)
+		else : self[name].Fill(x[0],x[1],w)
+        else:
+		if type(x[0])==list:
+			for x0,x1,x2 in zip(x[0],x[1],x[2]): self[name].Fill(x0,x1,x2,w)
+		else : self[name].Fill(x[0],x[1],x[2],w)
