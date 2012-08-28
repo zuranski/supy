@@ -3,6 +3,7 @@ import os,socket,configuration
 def site() :
     d = {"hep.ph.ic.ac.uk":"ic",
          "sesame1":"pu",
+         "sesame2":"pu",
          "brown.edu":"bn",
          "cern.ch":"cern",
          "fnal.gov":"fnal",
@@ -40,7 +41,7 @@ def specs() :
                     "queueVars"      : {"queue":"queue", "user":"user", "state":"state", "run":"r", "userBlackList":["user"],
                                         "summary":"qstat -u '*'", "sample":"qstat | head"},
                     },
-        "pu_cms"  :{"localOutputDir" : "/tmp/%s"%user,
+        "pu_cms"  :{"localOutputDir" : "/tigress-hsm/%s/tmp/"%user,
                     "globalOutputDir": "/tigress-hsm/%s/tmp/"%user,
                     "queueHeaders"   : ["Job id","Name","User","Time Use","S","Queue"],
                     "queueVars"      : {"queueName":"hep", "queue": "Queue", "user":"User", "state":"S", "run":"R", "summary":"qstat", "sample": "qstat -u %s | head"%user},
