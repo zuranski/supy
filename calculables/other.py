@@ -147,9 +147,10 @@ class Discriminant(secondary) :
                  right = {"pre":"","samples":[],"tag":""},
                  dists = {}, # key = calc or leaf name : val = (bins,min,max)
                  bins = 50,
-                 correlations = False
+                 correlations = False,
+                 indices = None
                  ) :
-        for item in ['fixes','left','right','dists','correlations','bins'] : setattr(self,item,eval(item))
+        for item in ['fixes','left','right','dists','correlations','bins','indices'] : setattr(self,item,eval(item))
         self.moreName = "L:"+left['pre']+"; R:"+right['pre']+"; "+','.join(dists.keys())
 
     def onlySamples(self) : return [self.left['pre'],self.right['pre']]
@@ -208,38 +209,46 @@ class Discriminant(secondary) :
         print "Wrote file: %s.pdf"%fileName
 
     def uponAcceptance(self,ev) :
-        for key,val in self.dists.iteritems() : self.book.fill(ev[key], key, *val, title = ";%s;events / bin"%key)
-        self.book.fill(ev[self.name], self.name, self.bins, 0, 1, title = ";%s;events / bin"%self.name)
+        for key,val in self.dists.iteritems() : 
+            if self.indices is None:
+                self.book.fill(ev[key], key, *val, title = ";%s;events / bin"%key)
+            else:
+                for idx in ev[self.indices]:
+                     self.book.fill(ev[key][idx], key, *val, title = ";%s;events / bin"%key)
+        if self.indices is None:
+            self.book.fill(ev[self.name], self.name, self.bins, 0, 1, title = ";%s;events / bin"%self.name)
+        else:
+            for idx in ev[self.indices]:
+                self.book.fill(ev[self.name][idx], self.name, self.bins, 0, 1, title = ";%s;events / bin"%self.name)
         if self.correlations :
             for (key1,val1),(key2,val2) in itertools.combinations(self.dists.iteritems(),2) :
-		if type(ev[key1])!=list:
+                if self.indices is None:
                     self.book.fill( ( max( val1[1]+1e-6, min( val1[2]-1e-6, ev[key1] )),
                                     max( val2[1]+1e-6, min( val2[2]-1e-6, ev[key2] ))),"_cov_%s_%s"%(key1,key2), *zip(val1,val2), title = ';%s;%s;events / bin'%(key1,key2))
-		else:
-		    for var1,var2 in zip(ev[key1],ev[key2]):
-                        self.book.fill( ( max( val1[1], min( val1[2]-1e-6, var1 )),
-                                         max( val2[1], min( val2[2]-1e-6, var2 ))),"_cov_%s_%s"%(key1,key2), *zip(val1,val2), title = ';%s;%s;events / bin'%(key1,key2))
+                else:
+                    for idx in ev[self.indices]:
+                        self.book.fill( ( max( val1[1], min( val1[2]-1e-6, ev[key1][idx] )),
+                                         max( val2[1], min( val2[2]-1e-6, ev[key2][idx] ))),"_cov_%s_%s"%(key1,key2), *zip(val1,val2), title = ';%s;%s;events / bin'%(key1,key2))
 
     def likelihoodRatio(self,key) :
         hist = self.likelihoodRatios[key]
-        if not hist: return 0.5
-	if type(self.source[key])==list:
-	    return [hist.GetBinContent(hist.FindFixBin(var)) for var in self.source[key]]
-	else:
-	    return hist.GetBinContent(hist.FindFixBin(self.source[key]))
+        if not hist: return 0.5 if self.indices is None else [0.5 for idx in range(len(self.source[key]))] 
+        if self.indices is None:
+            return hist.GetBinContent(hist.FindFixBin(self.source[key]))
+        else:
+            return [hist.GetBinContent(hist.FindFixBin(self.source[key][idx])) if idx in self.source[self.indices] else 1e5 for idx in range(len(self.source[key]))]
 
     def update(self,_) :
-
-	if type(self.likelihoodRatio(self.dists.keys()[0]))==list:
-		N = len(self.likelihoodRatio(self.dists.keys()[0]))
-		likelihoodRatios = [[] for i in range(N)]
-		for i in range(N):
-			for key in self.dists:
-				likelihoodRatios[i].append(self.likelihoodRatio(key)[i])
-        	self.value = [1. / ( 1 + reduce(operator.mul, likelihoodRatios[i], 1) ) for i in range(N)]
-	else:
-        	likelihoodRatios = [self.likelihoodRatio(key) for key in self.dists]
-		self.value = 1. / ( 1 + reduce(operator.mul, likelihoodRatios, 1) )
+        if self.indices is None:
+            likelihoodRatios = [self.likelihoodRatio(key) for key in self.dists]
+            self.value = 1. / ( 1 + reduce(operator.mul, likelihoodRatios, 1) )
+        else: 
+            N = len(self.source[self.dists.keys()[0]])
+            likelihoodRatios = [[] for i in range(N)]
+            for key in self.dists: 
+                likelihoodRatioOneVar = self.likelihoodRatio(key)
+                for i in range(N): likelihoodRatios[i].append(likelihoodRatioOneVar[i])
+            self.value = [1. / ( 1 + reduce(operator.mul, likelihoodRatios[i], 1) ) for i in range(N)]
 
     def organize(self,org) :
         [ org.mergeSamples( targetSpec = {'name':item['pre']}, sources = item['samples'], scaleFactors = item['sf'] if 'sf' in item else [], force = True) if item['samples'] else
