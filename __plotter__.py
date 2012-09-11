@@ -461,7 +461,7 @@ class plotter(object) :
                 text.DrawTextNDC(x, y, out)
 
         printOneType( 0.02, *loopOneType(False) )
-        printOneType( 0.52, *loopOneType(True)  )
+        printOneType( 0.02, *loopOneType(True)  )
         return text
     
     def flushPage(self) :
