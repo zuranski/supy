@@ -4,6 +4,7 @@ def site() :
     d = {"hep.ph.ic.ac.uk":"ic",
          "sesame1":"pu",
          "sesame2":"pu",
+         "sesame3":"pu",
          "brown.edu":"bn",
          "cern.ch":"cern",
          "fnal.gov":"fnal",
