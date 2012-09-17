@@ -107,11 +107,12 @@ class plotter(object) :
                  dontShiftList = ["lumiHisto","xsHisto","nJobsHisto"],
                  blackList = [],
                  whiteList = [],
-                 pushLeft = False
+                 pushLeft = False,
+                 doCorrTable = False
                  ) :
         for item in ["someOrganizer","pdfFileName","samplesForRatios","sampleLabelsForRatios","doLog","linYAfter","latexYieldTable",
                      "pegMinimum", "anMode","drawYx","doMetFit","doColzFor2D","nLinesMax","nColumnsMax","compactOutput","pageNumbers",
-                     "noSci", "showErrorsOnDataYields", "shiftUnderOverFlows","dontShiftList","whiteList","blackList","showStatBox",
+                     "noSci", "showErrorsOnDataYields", "shiftUnderOverFlows","dontShiftList","whiteList","blackList","showStatBox", "doCorrTable",
                      "detailedCalculables", "rowColors","rowCycle","omit2D","dependence2D", "printRatios","pushLeft"] :
             setattr(self,item,eval(item))
 
@@ -128,6 +129,9 @@ class plotter(object) :
         self.cutDict = {}
         self.yieldDict = {}
         self.sampleList = []
+
+        #used for making corrTable
+        self.corrTable = []
 
     def plotAll(self) :
         print utils.hyphens
@@ -165,6 +169,7 @@ class plotter(object) :
         self.printCanvas("]")
         print self.pdfFileName, 'has been written'
         if self.latexYieldTable : self.printLatexYieldTable()
+        if self.doCorrTable : self.printCorrTable()
         print utils.hyphens
 
     def oneTable(self, f, columnSpecs = "", header = "", rows = []) :
@@ -569,7 +574,7 @@ class plotter(object) :
                 for iBinX in range(histo.GetNbinsX()+2) :
                     for iBinY in range(histo.GetNbinsY()+2) :
                         value = histo.GetBinContent(iBinX,iBinY)
-                        if value>0.0 :
+                        if value!=0.0 :
                             if value<globalMin : globalMin = value
                             if value>globalMax : globalMax = value                            
         return globalMin,globalMax
@@ -636,16 +641,17 @@ class plotter(object) :
                                            double = inDict(sample, "double", ""))
             elif dimension==2 and self.omit2D : continue
             elif dimension==2 :
+                legendEntries.append((histo, str(round(histo.GetCorrelationFactor(1,2),3))))
                 self.plot2D(histo, count, sampleName, stuffToKeep)
                 pads[sampleName] = 1+count
             else :
                 print "Skipping histo",histo.GetName(),"with dimension",dimension
                 continue
             count+=1
-        if dimension==1 :
-            if opts["reverseLegend"] : legendEntries.reverse()
-            for e in legendEntries : legend.AddEntry(*e)
-            legend.Draw()
+        #if dimension==1 :
+        if opts["reverseLegend"] : legendEntries.reverse()
+        for e in legendEntries : legend.AddEntry(*e)
+        legend.Draw()
         return count,stuffToKeep,pads
 
     def plotRatio(self,histos,dimension) :
@@ -799,35 +805,29 @@ class plotter(object) :
     	newTitle=sampleName if oldTitle=="" else sampleName+"_"+oldTitle
     	histo.SetTitle(newTitle)
     	histo.SetStats(False)
+    	#histo.SetStats(self.showStatBox)
     	histo.GetZaxis().SetTitleOffset(1.3)
         if self.doLog : r.gPad.SetLogz()
 
-	if 'dependence' in histo.GetName(): r.gPad.SetLogz(0)
+        #plot-specific stuff
+        if 'dependence' in histo.GetName(): r.gPad.SetLogz(0)
 
-	if 'counts' in histo.GetName():
-                histo.SetMarkerSize(3)
-		a = histo.GetBinContent(1,1)
-		aerr = histo.GetBinError(1,1)
-		b = histo.GetBinContent(1,2)
-		berr = histo.GetBinError(1,2)
-		c = histo.GetBinContent(2,1)
-		cerr = histo.GetBinError(2,1)
-		d = histo.GetBinContent(2,2)
-		derr = histo.GetBinError(2,2)
-		exp = 0
-		expErr = 0
-		if a>0 and b>0 and c>0:
-			exp = b*c/float(a)
-			import math
-			expErr = exp*math.sqrt(pow(aerr/float(a),2)+pow(berr/float(b),2)+pow(cerr/float(c),2))
-		if '_X_' not in sampleName:
-			histo.SetBinContent(2,2,exp) 	 
-			histo.SetBinError(2,2,expErr)
+        # ABCD count histograms
+        if 'counts' in histo.GetName():
+            histo.SetMarkerSize(3)
+            if 'H' in sampleName: 
+                histo.DrawNormalized('TEXTE')
+            else:
                 histo.Draw('TEXTE')
         else:
 	        histo.Draw("colz" if self.doColzFor2D else "")
 
-        #plot-specific stuff
+        # corrTable
+        if self.doCorrTable:
+            if len(histo.GetName().split('_')) > 2 and "data" in sampleName and "dependence" not in histo.GetName():
+			    self.corrTable.append(sorted(histo.GetName().split('_')[:2])
+                                      +[str(round(histo.GetCorrelationFactor(1,2),3))])
+
         if "deltaHtOverHt_vs_mHtOverHt" in histo.GetName() \
                or "deltaHtOverHt_vs_metOverHt" in histo.GetName() :
             histo.GetYaxis().SetRangeUser(0.0,0.7)
@@ -859,4 +859,19 @@ class plotter(object) :
         stuffToKeep.append( self.lineDraw(name = "hollowConeTrackIsolation", suffix = "tight", offset = 2.0,   slope = 0.001,  histo = histo, color = r.kBlue) )
         stuffToKeep.append( self.lineDraw(name = "sigmaIetaIetaBarrel",      suffix = "tight", offset = 0.013, slope = 0.0,    histo = histo, color = r.kBlue) )
         stuffToKeep.append( self.lineDraw(name = "sigmaIetaIetaEndcap",      suffix = "tight", offset = 0.030, slope = 0.0,    histo = histo, color = r.kBlue) )
+
+    def printCorrTable(self):
+        self.corrTable=sorted(self.corrTable)
+        listOfVars = []
+        for item in self.corrTable: 
+            if item[0] not in listOfVars:listOfVars.append(item[0])
+            if item[1] not in listOfVars:listOfVars.append(item[1])
+        import string
+        print " "*20+"".join(string.ljust(a[:15],20) for a in listOfVars)
+        for i in range(len(listOfVars)):
+            buff=string.ljust(listOfVars[i][:15],20)+' '*20*(i+1)
+            for item in self.corrTable:
+                if listOfVars[i]==item[0] :
+                    buff+=string.ljust(item[2],20)
+            print buff
 ##############################

@@ -77,42 +77,29 @@ def roundString(val, err, width=None, noSci = False, noErr = False) :
 #####################################
 def dependence(TH2, name="", minimum=-5, maximum=5, inSigma = True) :
     if not TH2: return None
-    if 'counts' in TH2.GetName(): return None
     if TH2.GetDirectory() : TH2.GetDirectory().cd()
-    #dep = TH2.Clone(name if name else TH2.GetName()+"_dependence")
-    dep = TH2.Clone(name+"_dependence" if name else TH2.GetName()+"_dependence")
+    dep = TH2.Clone(name if name else TH2.GetName()+"_dependence")
     dep.SetZTitle("dependence")
-    norm = TH2.Integral(1,TH2.GetNbinsX()+1,1,TH2.GetNbinsY()+1)
+    norm = TH2.Integral()
     projX = TH2.ProjectionX()
     projY = TH2.ProjectionY()
-    binValues = []
-    binErrors = []
-    ndof = 0
     for iX in range(1,TH2.GetNbinsX()+1) :
         for iY in range(1,TH2.GetNbinsY()+1) :
             X = projX.GetBinContent(iX)
             Y = projY.GetBinContent(iY)
             bin = TH2.GetBin(iX,iY)
             XY = TH2.GetBinContent(bin)
-	    if XY: ndof+=1
             dBin = math.log(norm*XY/X/Y) if XY else 0
             eX = projX.GetBinError(iX)
             eY = projX.GetBinError(iY)
             eXY = TH2.GetBinError(bin)
             eBin = math.sqrt((eXY/XY)**2 + (eX/X)**2 + (eY/Y)**2) if XY else 1# faulty assumption of independent errors
             #dep.SetBinContent(bin, min(maximum,max(minimum,math.log(norm*XY/X/Y)/(eBin if eBin and inSigma else 1))) if XY else 0)
-            #dep.SetBinContent(bin, min(maximum,max(minimum,dBin/(eBin if eBin and inSigma else 1))) if XY else 0)
-            dep.SetBinContent(bin, min(maximum,max(minimum,dBin)))
-            dep.SetBinError(bin,eBin)
-	    binValues.append(dBin)
-	    binErrors.append(eBin)
+            dep.SetBinContent(bin, min(maximum,max(minimum,dBin/(eBin if eBin and inSigma else 1))) if XY else 0)
+            dep.SetBinError(bin,0)
     dep.SetMinimum(minimum)
     dep.SetMaximum(maximum)
-    chi2 = sum([val*val/unc/unc for val,unc in zip(binValues,binErrors)])
-    pValue = r.TMath.Prob(chi2,ndof)
-    print sum(binValues)
-    print chi2,ndof,TH2.GetName(), pValue   
-
+    
     return dep
 #####################################
 def intFromBits(bits) :
@@ -145,7 +132,7 @@ def justNameTitle(tkey) :
              (name[:-L],title) if name[-L:] == title else
              (name,title) )
 #####################################
-def optimizationContours(signals, backgds, left = True, right = True, var = "") :
+def optimizationContours(signals, backgds, left = True, right = True, var = "", canvas = None) :
     stat = r.gStyle.GetOptStat()
     r.gStyle.SetOptStat(0)
     nBins = signals[0].GetNbinsX()
@@ -165,7 +152,7 @@ def optimizationContours(signals, backgds, left = True, right = True, var = "") 
             g.SetLineColor(col)
             g.SetMinimum(0)
             g.SetMaximum(1)
-        c = r.TCanvas()
+        c = canvas if canvas else r.TCanvas()
         c.SetGrid()
         gEff.Draw("AL")
         gPur.Draw("L")
@@ -198,3 +185,6 @@ def optimizationContours(signals, backgds, left = True, right = True, var = "") 
     r.gStyle.SetOptStat(stat)
     return [c,eff,pur,signalb,ssqrtb,contour]
 #####################################
+def isSusy(pdgId) :
+    reducedPdgId = abs(pdgId)/1000000 # integer division
+    return reducedPdgId==1 or reducedPdgId==2 or (pdgId in [25,32,33,34,35,36,37])
