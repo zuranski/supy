@@ -132,6 +132,7 @@ class plotter(object) :
 
         #used for making corrTable
         self.corrTable = []
+        self.corrTableCmp = []
 
     def plotAll(self) :
         print utils.hyphens
@@ -826,7 +827,10 @@ class plotter(object) :
         if self.doCorrTable:
             if len(histo.GetName().split('_')) > 2 and "data" in sampleName and "dependence" not in histo.GetName():
 			    self.corrTable.append(sorted(histo.GetName().split('_')[:2])
-                                      +[str(round(histo.GetCorrelationFactor(1,2),3))])
+                                      +[str(int(100*histo.GetCorrelationFactor(1,2)))])
+            if len(histo.GetName().split('_')) > 2 and "qcd" in sampleName and "dependence" not in histo.GetName():
+			    self.corrTableCmp.append(sorted(histo.GetName().split('_')[:2])
+                                      +[str(int(100*histo.GetCorrelationFactor(1,2)))])
 
         if "deltaHtOverHt_vs_mHtOverHt" in histo.GetName() \
                or "deltaHtOverHt_vs_metOverHt" in histo.GetName() :
@@ -862,6 +866,7 @@ class plotter(object) :
 
     def printCorrTable(self):
         self.corrTable=sorted(self.corrTable)
+        self.corrTableCmp=sorted(self.corrTableCmp)
         listOfVars = []
         for item in self.corrTable: 
             if item[0] not in listOfVars:listOfVars.append(item[0])
@@ -870,8 +875,8 @@ class plotter(object) :
         print " "*20+"".join(string.ljust(a[:15],20) for a in listOfVars)
         for i in range(len(listOfVars)):
             buff=string.ljust(listOfVars[i][:15],20)+' '*20*(i+1)
-            for item in self.corrTable:
+            for item,itemCmp in zip(self.corrTable,self.corrTableCmp):
                 if listOfVars[i]==item[0] :
-                    buff+=string.ljust(item[2],20)
+                    buff+=string.ljust(item[2]+' ('+itemCmp[2]+') %',20)
             print buff
 ##############################
