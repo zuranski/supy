@@ -14,10 +14,11 @@ def cmsStamp(lumi = None, cms = True, preliminary = True, coords = (0.75, 0.5)) 
     latex.SetTextAlign(21) #align center, bottom
 
     factor = 0.0
-    if cms : latex.DrawLatex(x, y-factor*slope, "CMS%s"%(" Preliminary" if preliminary else "")); factor+=1.0
+    if cms : latex.DrawLatex(x, y-factor*slope, "CMS%s"%(" Preliminary" if preliminary else "")); factor+=1.6
     if lumi!=None :
-        latex.DrawLatex(x, y-factor*slope,"L = %.0f pb^{-1}"%lumi); factor+=1.0
-    latex.DrawLatex(x, y-factor*slope, "#sqrt{s} = 7 TeV"); factor+=1.0
+        lumi/=float(1000)
+        latex.DrawLatex(x, y-factor*slope,"#int L dt = %.1f fb^{-1}, #sqrt{s} = 7 TeV"%lumi); factor+=1.0
+    #latex.DrawLatex(x, y-factor*slope, "#sqrt{s} = 7 TeV"); factor+=1.0
 #####################################
 def cmsswFuncData(fileName = None, par = None) :
     if not fileName or not par: return None

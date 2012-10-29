@@ -1,4 +1,4 @@
-import copy,array,os,collections
+import copy,array,os,collections,pickle
 import ROOT as r
 from supy import analysisStep,utils
 #####################################
@@ -20,6 +20,7 @@ class collector(analysisStep) :
     def mergeFunc(self, products) :
         print "These points %s have been found:"%str(self.vars)
         s = set([]).union(*products["collection"])
+        pickle.dump(s,open(self.outputFileName,"w"))
         print sorted(list(s))
 #####################################
 class skimmer(analysisStep) :
