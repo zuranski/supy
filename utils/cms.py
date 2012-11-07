@@ -16,8 +16,11 @@ def cmsStamp(lumi = None, cms = True, preliminary = True, coords = (0.75, 0.5)) 
     factor = 0.0
     if cms : latex.DrawLatex(x, y-factor*slope, "CMS%s"%(" Preliminary" if preliminary else "")); factor+=1.6
     if lumi!=None :
-        lumi/=float(1000)
-        latex.DrawLatex(x, y-factor*slope,"#int L dt = %.1f fb^{-1}, #sqrt{s} = 7 TeV"%lumi); factor+=1.0
+        if lumi>1000 : 
+            lumi/=float(1000)
+            latex.DrawLatex(x, y-factor*slope,"#int L dt = %.1f fb^{-1}, #sqrt{s} = 7 TeV"%lumi); factor+=1.
+        else :
+            latex.DrawLatex(x, y-factor*slope,"#int L dt = %.0f pb^{-1}, #sqrt{s} = 7 TeV"%lumi); factor+=1.
     #latex.DrawLatex(x, y-factor*slope, "#sqrt{s} = 7 TeV"); factor+=1.0
 #####################################
 def cmsswFuncData(fileName = None, par = None) :
