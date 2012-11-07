@@ -68,10 +68,38 @@ def ratioHistogram( num, den, relErrMax=0.25) :
         iLo,iHi = sorted([iG,iH])
         return regroup(groups[:iLo] + [groups[iLo]+groups[iHi]] + groups[iHi+1:])
 
+    # ratio of TGraphs for efficiency curves
+    if issubclass(type(num),r.TGraph) :
+        ratio = r.TGraphErrors()
+        Ex,x,s2,count,j=0,0,0,0,0
+        for i in range(num.GetN()) :
+            xi,y1,y2=r.Double(0),r.Double(0),r.Double(0)
+            num.GetPoint(i,xi,y1)
+            den.GetPoint(i,xi,y2)
+            e1 = 0.5*(num.GetErrorYhigh(i)+num.GetErrorYlow(i))
+            e2 = 0.5*(den.GetErrorYhigh(i)+den.GetErrorYlow(i))
+            yi = y1/float(y2)
+            si2 = pow(yi,2)*(pow(e1/y1,2)+pow(e2/y2,2))
+            # x point 
+            x = (count*x+xi)/(count+1)
+            Ex += num.GetErrorXhigh(i)
+            count+=1
+            # y point - weighted average
+            y_over_s2 = y/s2 + yi/si2 if s2 !=0 else yi/si2
+            s2 = 1./(1./s2+1./si2) if s2 !=0 else si2
+            y = y_over_s2*s2
+            if (math.sqrt(s2)/y<0.02) or i==num.GetN()-1 :
+                ratio.SetPoint(j,x,y)
+                ratio.SetPointError(j,Ex,math.sqrt(s2))
+                count,Ex,s2,x=0,0,0,0
+                j+=1
+            ratio.GetXaxis().SetLimits(num.GetXaxis().GetXmin(),num.GetXaxis().GetXmax())
+        ratio.SetTitle("")
+        return ratio
+
     groups = regroup( [(i,) for i in range(1,1+num.GetNbinsX())] )
     ratio = r.TH1D("ratio"+num.GetName()+den.GetName(),"",len(groups), array.array('d', [num.GetBinLowEdge(min(g)) for g in groups ] + [num.GetXaxis().GetBinUpEdge(num.GetNbinsX())]) )
     for i,g in enumerate(groups) :
         ratio.SetBinContent(i+1,groupR(g))
         ratio.SetBinError(i+1,groupErr(g))
     return ratio
-#####################################
