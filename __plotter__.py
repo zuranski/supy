@@ -35,6 +35,7 @@ def shiftUnderAndOverflows(dimension, histos, dontShiftList = []) :
     if dimension!=1 : return
     for histo in histos:
         if not histo : continue
+        if issubclass(type(histo),r.TGraph) : continue
         if histo.GetName() in dontShiftList : continue
         bins = histo.GetNbinsX()
         entries = histo.GetEntries()
@@ -43,7 +44,7 @@ def shiftUnderAndOverflows(dimension, histos, dontShiftList = []) :
         histo.SetEntries(entries)
 ##############################
 def dimensionOfHisto(histos) :
-    def D(h) : return 2 if issubclass(type(h),r.TH2) else 1 if issubclass(type(h),r.TH1) else 0
+    def D(h) : return 2 if issubclass(type(h),r.TH2) else 1 if (issubclass(type(h),r.TH1) or issubclass(type(h),r.TGraph)) else 0
     dimensions = set([D(h) for h in histos if h])
     assert len(dimensions)==1,"inconsistent histogram dimensions\n{%s}"%','.join(h.GetName() for h in histos if h)
     return next(iter(dimensions))
@@ -246,28 +247,9 @@ class plotter(object) :
         f.close()
         print "The output file \""+texFile+"\" has been written."
         
-    def printOnePage(self, name = "", tight = False, padNumber = None, alsoC = False) :
-        fileName = "%s_%s.eps"%(self.pdfFileName.replace(".pdf",""),name)
-        pad = self.canvas if padNumber is None else self.canvas.cd(padNumber)
-        pad.Print(fileName)
-        message = "The output file \"%s\" has been written."%fileName
-        if alsoC :
-            pad.Print(fileName.replace(".eps",".C"))
-            print message.replace(".eps",".C")
-            
-        if not tight : #make pdf
-            os.system("epstopdf "+fileName)
-            os.system("rm       "+fileName)
-        else : #make pdf with tight bounding box
-            epsiFile = fileName.replace(".eps",".epsi")
-            os.system("ps2epsi "+fileName+" "+epsiFile)
-            os.system("epstopdf "+epsiFile)
-            os.system("rm       "+epsiFile)
-
-        print message.replace(".eps",".pdf")
-
-    def individualPlots(self, plotSpecs, newSampleNames = {}, cms = True, preliminary = True, tdrStyle = True) :
-        def goods(spec) :
+    def individualPlots(self, plotSpecs, newSampleNames = {}, cms = True, preliminary = True, tdrStyle = True, histos=None) :
+        def goods(spec,histos) :
+            if histos is not None: return histos,None
             for item in ["stepName", "stepDesc", "plotName"] :
                 if item not in spec : return
 
@@ -324,7 +306,7 @@ class plotter(object) :
         if tdrStyle : setupTdrStyle()
 
         for spec in plotSpecs :
-            histos,ignoreHistos = goods(spec)
+            histos,ignoreHistos = goods(spec,histos)
             if histos==None : continue
             
             if onlyDumpToFile(histos, spec) : continue
@@ -356,7 +338,32 @@ class plotter(object) :
                 args["name"] += "_%s"%sampleName.replace(" ","_")
                 args["padNumber"] = pads[sampleName]
                 setTitles(histos, spec) #to allow for overwriting global title
-            self.printOnePage(**args)
+            ratios = []
+            if self.plotRatios : 
+                ratios = self.plotRatio(histos,1)
+                ratio = ratios[-1]
+                self.canvas.cd(2)
+                if issubclass(type(histos[0]),r.TGraph): 
+                    ratio.Draw("AP")
+                else: ratio.Draw()
+            fileName = "%s_%s.eps"%(self.pdfFileName.replace(".pdf",""),args['name'])
+            pad = self.canvas.cd(0)
+            pad.Print(fileName)
+            message = "The output file \"%s\" has been written."%fileName
+            if args['alsoC'] :
+                pad.Print(fileName.replace(".eps",".C"))
+                print message.replace(".eps",".C")
+            
+            if not args['tight'] : #make pdf
+                os.system("epstopdf "+fileName)
+                os.system("rm       "+fileName)
+            else : #make pdf with tight bounding box
+                epsiFile = fileName.replace(".eps",".epsi")
+                os.system("ps2epsi "+fileName+" "+epsiFile)
+                os.system("epstopdf "+epsiFile)
+                os.system("rm       "+epsiFile)
+
+            print message.replace(".eps",".pdf")
         print utils.hyphens
 
     def printCalculablesDetailed(self, blocks) :
@@ -564,6 +571,10 @@ class plotter(object) :
 
         for histo,ignore in zip(histos,ignoreHistos) :
             if ignore or (not histo) : continue
+            if issubclass(type(histo),r.TGraph):
+                globalMax=1.
+                globalMin=0
+                continue
             if dimension==1 :
                 for iBinX in range(histo.GetNbinsX()+2) :
                     content = histo.GetBinContent(iBinX)
@@ -596,7 +607,7 @@ class plotter(object) :
         self.canvas.Clear()
         if dimension==1 :
             if self.plotRatios :
-                split = 0.2
+                split = 0.25
                 self.canvas.Divide(1,2)
                 self.canvas.cd(1).SetPad(0.01,split+0.01,0.99,0.99)
                 self.canvas.cd(2).SetPad(0.01,0.01,0.99,split)
@@ -626,13 +637,14 @@ class plotter(object) :
         count = 0
         pads = {}
         for sample,histo,ignore in zip(self.someOrganizer.samples, histos, opts["ignoreHistos"]) :
-            if ignore or (not histo) or (not histo.GetEntries()) : continue
+            #if ignore or (not histo) or (not histo.GetEntries()) : continue
+            if ignore or (not histo) : continue
 
             if "color" in sample :
                 for item in ["Line", "Marker"] :
                     getattr(histo,"Set%sColor"%item)(sample["color"])
             for item in ["lineColor", "lineStyle", "lineWidth",
-                         "markerStyle", "markerColor", "fillStyle", "fillColor"] :
+                         "markerStyle", "markerColor","markerSize", "fillStyle", "fillColor"] :
                 if item in sample : getattr(histo, "Set"+item.capitalize()[0]+item[1:])(sample[item])
 
             sampleName = inDict(opts["newSampleNames"], sample["name"], sample["name"])
@@ -673,27 +685,31 @@ class plotter(object) :
         same = ""
         for denomHisto in denomHistos :
             ratio = None
-            if numHisto and denomHisto and numHisto.GetEntries() and denomHisto.GetEntries() :
+            #if numHisto and denomHisto and numHisto.GetEntries() and denomHisto.GetEntries() :
+            if numHisto and denomHisto :
                 ratio = utils.ratioHistogram(numHisto,denomHisto)
-                ratio.SetMinimum(0.0)
-                ratio.SetMaximum(2.0)
+                ratio.SetMinimum(0.9)
+                ratio.SetMaximum(1.1)
                 ratio.GetYaxis().SetTitle(numLabel+"/"+denomLabel)
                 self.canvas.cd(2)
                 adjustPad(r.gPad, self.anMode)
                 r.gPad.SetGridy()
-                ratio.SetStats(False)
+                if issubclass(type(ratio),r.TH1) : ratio.SetStats(False)
                 ratio.GetXaxis().SetLabelSize(0.0)
                 ratio.GetXaxis().SetTickLength(3.5*ratio.GetXaxis().GetTickLength())
-                ratio.GetYaxis().SetLabelSize(0.2)
-                ratio.GetYaxis().SetNdivisions(502,True)
+                ratio.GetYaxis().SetLabelSize(0.12)
+                ratio.GetYaxis().SetNdivisions(505,True)
                 ratio.GetXaxis().SetTitleOffset(0.2)
-                ratio.GetYaxis().SetTitleSize(0.2)
-                ratio.GetYaxis().SetTitleOffset(0.2)
-                if len(denomHistos)==1: ratio.SetMarkerStyle(numHisto.GetMarkerStyle())
+                ratio.GetYaxis().SetTitleSize(0.15)
+                ratio.GetYaxis().SetTitleOffset(0.43)
+                if len(denomHistos)==1: 
+                    ratio.SetMarkerStyle(numHisto.GetMarkerStyle())
+                    ratio.SetMarkerSize(numHisto.GetMarkerSize())
                 color = numHisto.GetLineColor() if len(denomHistos)==1 else denomHisto.GetLineColor()
                 ratio.SetLineColor(color)
                 ratio.SetMarkerColor(color)
-                ratio.Draw(same)
+                if issubclass(type(ratio),r.TGraph) : ratio.Draw("AP")
+                else : ratio.Draw(same)
                 same = "same"
             else :
                 self.canvas.cd(2)
@@ -716,7 +732,6 @@ class plotter(object) :
         self.setRanges(histos, *self.getExtremes(dimension, histos, options["ignoreHistos"]))
 
         count,stuffToKeep,pads = self.plotEachHisto(dimension, histos, options)
-            
         if self.plotRatios and dimension==1 :
             ratios = self.plotRatio(histos,dimension)
         self.canvas.cd(0)
@@ -738,10 +753,12 @@ class plotter(object) :
         if count==0 :
             if not self.anMode : histo.GetYaxis().SetTitleOffset(1.25)
             if self.doLog : r.gPad.SetLogy()
+            if issubclass(type(histo),r.TGraph) : goptions+="A"
         else :
             goptions += "same"
 
-        histo.SetStats(self.showStatBox)
+        if issubclass(type(histo),r.TH1) : histo.SetStats(self.showStatBox)
+        if issubclass(type(histo),r.TGraph) : goptions+="P"
         histo.Draw(goptions)
 
         if double :
