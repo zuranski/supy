@@ -258,7 +258,6 @@ class plotter(object) :
             if nMasters!=1 : print "I have %d Master step(s)."%nMasters
             
             for step in self.someOrganizer.steps :
-                print step.name, step.title
                 if (step.name, step.title) != (spec["stepName"], spec["stepDesc"]) : continue
                 if spec["plotName"] not in step : continue
                 histoList.append(step[spec["plotName"]])

@@ -88,7 +88,7 @@ def ratioHistogram( num, den, relErrMax=0.25) :
             y_over_s2 = y/s2 + yi/si2 if s2 !=0 else yi/si2
             s2 = 1./(1./s2+1./si2) if s2 !=0 else si2
             y = y_over_s2*s2
-            if (math.sqrt(s2)/y<0.02) or i==num.GetN()-1 :
+            if (math.sqrt(s2)/y<0.025) or i==num.GetN()-1 :
                 ratio.SetPoint(j,x,y)
                 ratio.SetPointError(j,Ex,math.sqrt(s2))
                 count,Ex,s2,x=0,0,0,0

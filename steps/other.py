@@ -21,7 +21,7 @@ class collector(analysisStep) :
         print "These points %s have been found:"%str(self.vars)
         s = set([]).union(*products["collection"])
         pickle.dump(s,open(self.outputFileName,"w"))
-        print sorted(list(s))
+        #print sorted(list(s))
 #####################################
 class skimmer(analysisStep) :
     
