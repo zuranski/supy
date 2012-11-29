@@ -132,8 +132,8 @@ class plotter(object) :
         self.sampleList = []
 
         #used for making corrTable
-        self.corrTable = []
-        self.corrTableCmp = []
+        self.corrTableData = []
+        self.corrTableMC = []
 
     def plotAll(self) :
         print utils.hyphens
@@ -571,8 +571,8 @@ class plotter(object) :
         for histo,ignore in zip(histos,ignoreHistos) :
             if ignore or (not histo) : continue
             if issubclass(type(histo),r.TGraph):
-                globalMax=1.
-                globalMin=0
+                globalMax=histo.GetMaximum()
+                globalMin=histo.GetMinimum()
                 continue
             if dimension==1 :
                 for iBinX in range(histo.GetNbinsX()+2) :
@@ -687,8 +687,8 @@ class plotter(object) :
             #if numHisto and denomHisto and numHisto.GetEntries() and denomHisto.GetEntries() :
             if numHisto and denomHisto :
                 ratio = utils.ratioHistogram(numHisto,denomHisto)
-                ratio.SetMinimum(0.9)
-                ratio.SetMaximum(1.1)
+                ratio.SetMinimum(0.0)
+                ratio.SetMaximum(2.0)
                 ratio.GetYaxis().SetTitle(numLabel+"/"+denomLabel)
                 self.canvas.cd(2)
                 adjustPad(r.gPad, self.anMode)
@@ -700,7 +700,7 @@ class plotter(object) :
                 ratio.GetYaxis().SetNdivisions(505,True)
                 ratio.GetXaxis().SetTitleOffset(0.2)
                 ratio.GetYaxis().SetTitleSize(0.15)
-                ratio.GetYaxis().SetTitleOffset(0.43)
+                ratio.GetYaxis().SetTitleOffset([0.2,0.43][self.anMode])
                 if len(denomHistos)==1: 
                     ratio.SetMarkerStyle(numHisto.GetMarkerStyle())
                     ratio.SetMarkerSize(numHisto.GetMarkerSize())
@@ -842,11 +842,11 @@ class plotter(object) :
 
         # corrTable
         if self.doCorrTable:
-            if len(histo.GetName().split('_')) > 2 and "data" in sampleName and "dependence" not in histo.GetName():
-			    self.corrTable.append(sorted(histo.GetName().split('_')[:2])
+            if len(histo.GetName().split('_')) > 2 and "Data" in sampleName and "dependence" not in histo.GetName():
+			    self.corrTableData.append(sorted(histo.GetName().split('_')[:2])
                                       +[str(int(100*histo.GetCorrelationFactor(1,2)))])
-            if len(histo.GetName().split('_')) > 2 and "qcd" in sampleName and "dependence" not in histo.GetName():
-			    self.corrTableCmp.append(sorted(histo.GetName().split('_')[:2])
+            if len(histo.GetName().split('_')) > 2 and "QCD" in sampleName and "dependence" not in histo.GetName():
+			    self.corrTableMC.append(sorted(histo.GetName().split('_')[:2])
                                       +[str(int(100*histo.GetCorrelationFactor(1,2)))])
 
         if "deltaHtOverHt_vs_mHtOverHt" in histo.GetName() \
@@ -882,18 +882,29 @@ class plotter(object) :
         stuffToKeep.append( self.lineDraw(name = "sigmaIetaIetaEndcap",      suffix = "tight", offset = 0.030, slope = 0.0,    histo = histo, color = r.kBlue) )
 
     def printCorrTable(self):
-        self.corrTable=sorted(self.corrTable)
-        self.corrTableCmp=sorted(self.corrTableCmp)
+        self.corrTableData=sorted(self.corrTableData)
+        self.corrTableMC=sorted(self.corrTableMC)
         listOfVars = []
-        for item in self.corrTable: 
+        for item in self.corrTableMC: 
             if item[0] not in listOfVars:listOfVars.append(item[0])
             if item[1] not in listOfVars:listOfVars.append(item[1])
         import string
         print " "*20+"".join(string.ljust(a[:15],20) for a in listOfVars)
         for i in range(len(listOfVars)):
             buff=string.ljust(listOfVars[i][:15],20)+' '*20*(i+1)
-            for item,itemCmp in zip(self.corrTable,self.corrTableCmp):
-                if listOfVars[i]==item[0] :
-                    buff+=string.ljust(item[2]+' ('+itemCmp[2]+') %',20)
-            print buff
+            if len(self.corrTableData)>0 and len(self.corrTableMC)>0:
+                for item,itemCmp in zip(self.corrTableData,self.corrTableMC):
+                    if listOfVars[i]==item[0] :
+                        buff+=string.ljust(item[2]+' ('+itemCmp[2]+') %',20)
+                print buff
+            elif len(self.corrTableData)>0:
+                for item in self.corrTableData:
+                    if listOfVars[i]==item[0] :
+                        buff+=string.ljust(item[2]+' %',20)
+                print buff
+            elif len(self.corrTableMC)>0:
+                for item in self.corrTableMC:
+                    if listOfVars[i]==item[0] :
+                        buff+=string.ljust(item[2]+' %',20)
+                print buff
 ##############################
