@@ -249,7 +249,7 @@ class plotter(object) :
         
     def individualPlots(self, plotSpecs, newSampleNames = {}, cms = True, preliminary = True, tdrStyle = True, histos=None) :
         def goods(spec,histos) :
-            if histos is not None: return histos,None
+            #if histos is not None: return histos,None
             for item in ["stepName", "stepDesc", "plotName"] :
                 if item not in spec : return
 
@@ -573,6 +573,8 @@ class plotter(object) :
             if issubclass(type(histo),r.TGraph):
                 globalMax=histo.GetMaximum()
                 globalMin=histo.GetMinimum()
+                globalMax=1.1
+                globalMin=0
                 continue
             if dimension==1 :
                 for iBinX in range(histo.GetNbinsX()+2) :
@@ -798,6 +800,8 @@ class plotter(object) :
             tps.SetX2NDC(1.00)
             tps.SetY1NDC(0.70)
             tps.SetY2NDC(1.00)
+
+
         return keep
 
     def lineDraw(self, name, offset, slope, histo, color = r.kBlack, suffix = "") :

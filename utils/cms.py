@@ -3,7 +3,7 @@ import ROOT as r
 def cmsStamp(lumi = None, cms = True, preliminary = True, coords = (0.75, 0.5)) :
     latex = r.TLatex()
     latex.SetNDC()
-    size = 0.04
+    size = 0.035
     latex.SetTextSize(size)
     
     #latex.SetTextAlign(11) #align left, bottom
@@ -14,8 +14,9 @@ def cmsStamp(lumi = None, cms = True, preliminary = True, coords = (0.75, 0.5)) 
     latex.SetTextAlign(21) #align center, bottom
 
     factor = 0.0
-    if cms : latex.DrawLatex(x, y-factor*slope, "CMS%s"%(" Preliminary" if preliminary else "")); factor+=1.6
+    if lumi==None : latex.DrawLatex(x, y-factor*slope, "CMS%s%s"%(" Preliminary" if preliminary else "",', #sqrt{s} = 8 TeV'))
     if lumi!=None :
+        latex.DrawLatex(x, y-factor*slope, "CMS%s"%(" Preliminary" if preliminary else "")); factor+=1.6
         if lumi>1000 : 
             lumi/=float(1000)
             latex.DrawLatex(x, y-factor*slope,"#int L dt = %.1f fb^{-1}, #sqrt{s} = 8 TeV"%lumi); factor+=1.

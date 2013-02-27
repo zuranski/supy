@@ -1,5 +1,5 @@
 #!/bin/bash
 
 Q="hep"
-WT="1:00:00"
-qsub -q $Q -l walltime=$WT $1
+WT="00:30:00"
+qsub -q $Q -j oe -l walltime=$WT $1
