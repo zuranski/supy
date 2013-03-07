@@ -43,7 +43,7 @@ def specs() :
                                         "summary":"qstat -u '*'", "sample":"qstat | head"},
                     },
         "pu_cms"  :{"localOutputDir" : "/tmp/%s/"%user,
-                    "globalOutputDir": "/scratch/lustre/%s/"%user,
+                    "globalOutputDir": "/scratch/gpfs/%s/"%user,
                     #"globalOutputDir": "/tigress-hsm/%s/tmp/"%user,
                     "queueHeaders"   : ["Job id","Name","User","Time Use","S","Queue"],
                     "queueVars"      : {"queueName":"hep", "queue": "Queue", "user":"User", "state":"S", "run":"R", "summary":"qstat", "sample": "qstat -u %s | head"%user},
