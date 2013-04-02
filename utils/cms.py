@@ -3,7 +3,7 @@ import ROOT as r
 def cmsStamp(lumi = None, cms = True, preliminary = True, coords = (0.75, 0.5)) :
     latex = r.TLatex()
     latex.SetNDC()
-    size = 0.035
+    size = 0.03
     latex.SetTextSize(size)
     
     #latex.SetTextAlign(11) #align left, bottom

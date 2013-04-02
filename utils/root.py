@@ -1,4 +1,4 @@
-import os,math,array, ROOT as r
+import os,math,pickle,array, ROOT as r
 try:
     import numpy as np
 except:
@@ -50,7 +50,7 @@ def tCanvasPrintPdf(canvas, fileName, verbose = True) :
     os.system("rm %s.eps"%fileName)
     if verbose : print "Output file: %s.pdf"%fileName
 #####################################
-def ratioHistogram( num, den, relErrMax=0.25) :
+def ratioHistogram( num, den, relErrMax=0.02) :
 
     def groupR(group) :
         N,D = [float(sum(hist.GetBinContent(i) for i in group)) for hist in [num,den]]
@@ -71,7 +71,9 @@ def ratioHistogram( num, den, relErrMax=0.25) :
     # ratio of TGraphs for efficiency curves
     if issubclass(type(num),r.TGraph) :
         ratio = r.TGraphErrors()
+        #ratio = r.TGraph()
         Ex,x,s2,count,j=0,0,0,0,0
+        #toPickle=[]
         for i in range(num.GetN()) :
             xi,y1,y2=r.Double(0),r.Double(0),r.Double(0)
             num.GetPoint(i,xi,y1)
@@ -88,13 +90,19 @@ def ratioHistogram( num, den, relErrMax=0.25) :
             y_over_s2 = y/s2 + yi/si2 if s2 !=0 else yi/si2
             s2 = 1./(1./s2+1./si2) if s2 !=0 else si2
             y = y_over_s2*s2
-            if (math.sqrt(s2)/y<0.025) or i==num.GetN()-1 :
+            if (math.sqrt(s2)/y<0.03) or i==num.GetN()-1 :
+                print x,y
+                #toPickle.append((x-2.5,y))
                 ratio.SetPoint(j,x,y)
                 ratio.SetPointError(j,Ex,math.sqrt(s2))
+                #ratio.SetPointError(j,Ex,0)
                 count,Ex,s2,x=0,0,0,0
                 j+=1
             ratio.GetXaxis().SetLimits(num.GetXaxis().GetXmin(),num.GetXaxis().GetXmax())
+        #ratio.Fit("pol0","EX0")
+        #ratio.GetFunction('pol0').SetLineWidth(3)
         ratio.SetTitle("")
+        #pickle.dump(toPickle,open("data/trigw",'w'))
         return ratio
 
     groups = regroup( [(i,) for i in range(1,1+num.GetNbinsX())] )
