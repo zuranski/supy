@@ -69,7 +69,7 @@ class size(value) :
 
 #####################################
 class Ratio(secondary) :
-    def __init__(self, var=None, binning=(0,0,0), thisSample = None, target = ("",[]), groups = []) :
+    def __init__(self, var=None, indices=None, binning=(0,0,0), thisSample = None, target = ("",[]), groups = []) :
         self.fixes = (var,"")
         self.defaultValue = 1.0
 
@@ -80,7 +80,7 @@ class Ratio(secondary) :
             groups.append((thisSample,[thisSample]))
             self.thisGroup = thisSample
             
-        for item in ["var","binning","target","groups"] : setattr(self,item,eval(item))
+        for item in ["var","binning","target","groups","indices"] : setattr(self,item,eval(item))
         
     def setup(self,*_) :
         hists = self.fromCache( [self.target[0], self.thisGroup], ['unweighted'])
@@ -95,14 +95,25 @@ class Ratio(secondary) :
             self.weights = None
        
     def uponAcceptance(self,ev) :
-        me = ev[self.name]
-        self.book.fill( ev[self.var], "allweighted", *self.binning       , title = ";%s;events / bin"%self.var )
-        self.book.fill( ev[self.var], "meweighted", *self.binning, w = me, title = ";%s;events / bin"%self.var )
-        self.book.fill( ev[self.var], "unweighted", *self.binning, w = 1,  title = ";%s;events / bin"%self.var )
-        self.book.fill( math.log(max(1e-20,me)), "logMyValue", 40, -5, 5,     w = 1,  title = ";log(%s);events / bin"%self.name )
+        if self.indices is not None:
+            for idx in ev[self.indices]:
+                me = ev[self.name][idx]
+                self.book.fill( ev[self.var][idx], "allweighted", *self.binning       , title = ";%s;events / bin"%self.var )
+                self.book.fill( ev[self.var][idx], "meweighted", *self.binning, w = me, title = ";%s;events / bin"%self.var )
+                self.book.fill( ev[self.var][idx], "unweighted", *self.binning, w = 1,  title = ";%s;events / bin"%self.var )
+                self.book.fill( math.log(max(1e-20,me)), "logMyValue", 40, -5, 5,     w = 1,  title = ";log(%s);events / bin"%self.name )
+        else:
+            me = ev[self.name]
+            self.book.fill( ev[self.var], "allweighted", *self.binning       , title = ";%s;events / bin"%self.var )
+            self.book.fill( ev[self.var], "meweighted", *self.binning, w = me, title = ";%s;events / bin"%self.var )
+            self.book.fill( ev[self.var], "unweighted", *self.binning, w = 1,  title = ";%s;events / bin"%self.var )
+            self.book.fill( math.log(max(1e-20,me)), "logMyValue", 40, -5, 5,     w = 1,  title = ";log(%s);events / bin"%self.name )
 
     def update(self,_) :
-        self.value = self.defaultValue if not self.weights else self.weights.GetBinContent(self.weights.FindFixBin(self.source[self.var]))
+        if self.indices is not None:
+            self.value = [self.defaultValue if not self.weights else self.weights.GetBinContent(self.weights.FindFixBin(self.source[self.var][idx])) for idx in range(len(self.source[self.var]))]
+        else:
+            self.value = self.defaultValue if not self.weights else self.weights.GetBinContent(self.weights.FindFixBin(self.source[self.var]))
 
     def organize(self,org) :
         [ org.mergeSamples( targetSpec = {"name":pre}, sources = samples ) if samples else
@@ -111,7 +122,7 @@ class Ratio(secondary) :
 #####################################
 class Target(Ratio) :
     '''Provides weights to make var have the distribution given by target. '''
-    def __init__(self, var = None, target = None, thisSample = None, groups = []) :
+    def __init__(self, var = None, indices = None, target = None, thisSample = None, groups = []) :
         self.fixes = (var,"")
         self.defaultValue = 1.0
 
@@ -122,7 +133,7 @@ class Target(Ratio) :
             groups.append((thisSample,[thisSample]))
             self.thisGroup = thisSample
         
-        for item in ["var","target","groups"] : setattr(self,item,eval(item))
+        for item in ["var","target","groups","indices"] : setattr(self,item,eval(item))
 
     def setup(self,*_) :
         file = r.TFile.Open(self.target[0])
