@@ -249,7 +249,7 @@ class plotter(object) :
         
     def individualPlots(self, plotSpecs, newSampleNames = {}, cms = True, preliminary = True, tdrStyle = True, histos=None) :
         def goods(spec,histos) :
-            #if histos is not None: return histos,None
+            if histos is not None: return histos,None
             for item in ["stepName", "stepDesc", "plotName"] :
                 if item not in spec : return
 
@@ -689,8 +689,8 @@ class plotter(object) :
             #if numHisto and denomHisto and numHisto.GetEntries() and denomHisto.GetEntries() :
             if numHisto and denomHisto :
                 ratio = utils.ratioHistogram(numHisto,denomHisto)
-                ratio.SetMinimum(0.0)
-                ratio.SetMaximum(2.0)
+                ratio.SetMinimum(0.9)
+                ratio.SetMaximum(1.1)
                 ratio.GetYaxis().SetTitle(numLabel+"/"+denomLabel)
                 self.canvas.cd(2)
                 adjustPad(r.gPad, self.anMode)
