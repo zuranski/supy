@@ -249,7 +249,7 @@ class plotter(object) :
         
     def individualPlots(self, plotSpecs, newSampleNames = {}, cms = True, preliminary = True, tdrStyle = True, histos=None) :
         def goods(spec,histos) :
-            if histos is not None: return histos,None
+            #if histos is not None: return histos,None
             for item in ["stepName", "stepDesc", "plotName"] :
                 if item not in spec : return
 
@@ -573,8 +573,8 @@ class plotter(object) :
             if issubclass(type(histo),r.TGraph):
                 globalMax=histo.GetMaximum()
                 globalMin=histo.GetMinimum()
-                globalMax=1.1
-                globalMin=0
+                globalMax=1.3
+                globalMin=0.
                 continue
             if dimension==1 :
                 for iBinX in range(histo.GetNbinsX()+2) :
@@ -663,10 +663,10 @@ class plotter(object) :
                 print "Skipping histo",histo.GetName(),"with dimension",dimension
                 continue
             count+=1
-        #if dimension==1 :
-        if opts["reverseLegend"] : legendEntries.reverse()
-        for e in legendEntries : legend.AddEntry(*e)
-        legend.Draw()
+        if dimension==1 :
+            if opts["reverseLegend"] : legendEntries.reverse()
+            for e in legendEntries : legend.AddEntry(*e)
+            legend.Draw()
         return count,stuffToKeep,pads
 
     def plotRatio(self,histos,dimension) :
@@ -689,8 +689,8 @@ class plotter(object) :
             #if numHisto and denomHisto and numHisto.GetEntries() and denomHisto.GetEntries() :
             if numHisto and denomHisto :
                 ratio = utils.ratioHistogram(numHisto,denomHisto)
-                ratio.SetMinimum(0.9)
-                ratio.SetMaximum(1.1)
+                ratio.SetMinimum(0.8)
+                ratio.SetMaximum(1.2)
                 ratio.GetYaxis().SetTitle(numLabel+"/"+denomLabel)
                 self.canvas.cd(2)
                 adjustPad(r.gPad, self.anMode)
@@ -801,6 +801,14 @@ class plotter(object) :
             tps.SetY1NDC(0.70)
             tps.SetY2NDC(1.00)
 
+        if histo.GetName()=='ksLxy':
+			layers=[4.3,7.2,10.95] # pixel
+			layers+=[22.5,31.5,40.5,49.5,58.5] # inner strip barrel
+			l=[r.TLine() for layer in layers]
+			[line.SetLineWidth(4) for line in l]
+			for i,layer in enumerate(layers):
+				val=histo.GetBinContent(histo.FindFixBin(layer))
+				l[i].DrawLine(layer, val*0.5,layer,val*2.)
 
         return keep
 
@@ -843,6 +851,7 @@ class plotter(object) :
                 histo.Draw('TEXTE')
         else:
 	        histo.Draw("colz" if self.doColzFor2D else "")
+
 
         # corrTable
         if self.doCorrTable:

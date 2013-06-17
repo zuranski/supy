@@ -90,7 +90,7 @@ def ratioHistogram( num, den, relErrMax=0.02) :
             y_over_s2 = y/s2 + yi/si2 if s2 !=0 else yi/si2
             s2 = 1./(1./s2+1./si2) if s2 !=0 else si2
             y = y_over_s2*s2
-            if (math.sqrt(s2)/y<0.03) or i==num.GetN()-1 :
+            if (math.sqrt(s2)/y<0.3) or i==num.GetN()-1 :
                 print x,y
                 #toPickle.append((x-2.5,y))
                 ratio.SetPoint(j,x,y)
