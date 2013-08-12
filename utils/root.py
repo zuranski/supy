@@ -50,7 +50,7 @@ def tCanvasPrintPdf(canvas, fileName, verbose = True) :
     os.system("rm %s.eps"%fileName)
     if verbose : print "Output file: %s.pdf"%fileName
 #####################################
-def ratioHistogram( num, den, relErrMax=0.02) :
+def ratioHistogram( num, den, relErrMax=0.25) :
 
     def groupR(group) :
         N,D = [float(sum(hist.GetBinContent(i) for i in group)) for hist in [num,den]]
@@ -90,7 +90,7 @@ def ratioHistogram( num, den, relErrMax=0.02) :
             y_over_s2 = y/s2 + yi/si2 if s2 !=0 else yi/si2
             s2 = 1./(1./s2+1./si2) if s2 !=0 else si2
             y = y_over_s2*s2
-            if (math.sqrt(s2)/y<0.3) or i==num.GetN()-1 :
+            if (math.sqrt(s2)/y<0.03) or i==num.GetN()-1 :
                 print x,y
                 #toPickle.append((x-2.5,y))
                 ratio.SetPoint(j,x,y)
@@ -102,6 +102,7 @@ def ratioHistogram( num, den, relErrMax=0.02) :
         #ratio.Fit("pol0","EX0")
         #ratio.GetFunction('pol0').SetLineWidth(3)
         ratio.SetTitle("")
+        ratio.GetXaxis().SetTitle(num.GetXaxis().GetTitle())
         #pickle.dump(toPickle,open("data/trigw",'w'))
         return ratio
 
@@ -110,4 +111,5 @@ def ratioHistogram( num, den, relErrMax=0.02) :
     for i,g in enumerate(groups) :
         ratio.SetBinContent(i+1,groupR(g))
         ratio.SetBinError(i+1,groupErr(g))
+	ratio.GetXaxis().SetTitle(num.GetXaxis().GetTitle())
     return ratio
