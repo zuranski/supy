@@ -247,20 +247,18 @@ class plotter(object) :
         f.close()
         print "The output file \""+texFile+"\" has been written."
         
-    def individualPlots(self, plotSpecs, newSampleNames = {}, cms = True, preliminary = True, tdrStyle = True, histos=None) :
-        def goods(spec,histos) :
-            #if histos is not None: return histos,None
-            for item in ["stepName", "stepDesc", "plotName"] :
-                if item not in spec : return
-
+    def individualPlots(self, plotSpecs, newSampleNames = {}, cms = True, preliminary = True, simulation = False, tdrStyle = True) :
+        def goods(spec) :
             histoList = []
-            nMasters = [step.name for step in self.someOrganizer.steps].count("Master")
-            if nMasters!=1 : print "I have %d Master step(s)."%nMasters
-            
-            for step in self.someOrganizer.steps :
-                if (step.name, step.title) != (spec["stepName"], spec["stepDesc"]) : continue
-                if spec["plotName"] not in step : continue
-                histoList.append(step[spec["plotName"]])
+            if "histos" in spec: histoList.append(spec["histos"])
+            else:
+                for item in ["stepName", "stepDesc", "plotName"] :
+                    if item not in spec : return
+
+                for step in self.someOrganizer.steps :
+                    if (step.name, step.title) != (spec["stepName"], spec["stepDesc"]) : continue
+                    if spec["plotName"] not in step : continue
+                    histoList.append(step[spec["plotName"]])
 
             assert histoList,str(spec)
             histos = histoList[spec["index"] if "index" in spec else 0]
@@ -305,7 +303,7 @@ class plotter(object) :
         if tdrStyle : setupTdrStyle()
 
         for spec in plotSpecs :
-            histos,ignoreHistos = goods(spec,histos)
+            histos,ignoreHistos = goods(spec)
             if histos==None : continue
             
             if onlyDumpToFile(histos, spec) : continue
@@ -325,7 +323,7 @@ class plotter(object) :
 
             stuff,pads = self.onePlotFunction(histos, individual = individual)
             if ("stamp" not in spec) or spec["stamp"] :
-                utils.cmsStamp(lumi = self.someOrganizer.lumi, cms = cms, preliminary = preliminary, coords = individual["stampCoords"])
+                utils.cmsStamp(lumi = self.someOrganizer.lumi, cms = cms, preliminary = preliminary, simulation = simulation, coords = individual["stampCoords"])
 
             args = {"name":spec["plotName"],
                     "tight":False,#self.anMode
@@ -573,8 +571,8 @@ class plotter(object) :
             if issubclass(type(histo),r.TGraph):
                 globalMax=histo.GetMaximum()
                 globalMin=histo.GetMinimum()
-                globalMax=1.3
-                globalMin=0.
+                globalMax=0.4
+                globalMin=0.0001
                 continue
             if dimension==1 :
                 for iBinX in range(histo.GetNbinsX()+2) :
@@ -598,22 +596,23 @@ class plotter(object) :
             if not histo : continue
             if self.doLog :
                 histo.SetMinimum(0.5*globalMin) if self.pegMinimum==None else histo.SetMinimum(self.pegMinimum)
-                histo.SetMaximum(2.0*globalMax)
+                histo.SetMaximum(20*globalMax)
             else :
                 histo.SetMaximum(1.1*globalMax)
-                histo.SetMinimum(1.1*globalMin if globalMin<0 else 0)
+                histo.SetMinimum(1.1*globalMin)# if globalMin<0 else 1e-4)
 
     def prepareCanvas(self,histos,dimension) :
         self.canvas.cd(0)
         self.canvas.Clear()
         if dimension==1 :
             if self.plotRatios :
-                split = 0.25
+                split = 0.3
                 self.canvas.Divide(1,2)
-                self.canvas.cd(1).SetPad(0.01,split+0.01,0.99,0.99)
+                self.canvas.cd(1).SetPad(0.01,split+0.0,0.99,0.99)
+                self.canvas.cd(1).SetBottomMargin(0.)
                 self.canvas.cd(2).SetPad(0.01,0.01,0.99,split)
-                #self.canvas.cd(2).SetTopMargin(0.07)#default=0.05
-                #self.canvas.cd(2).SetBottomMargin(0.45)
+                self.canvas.cd(2).SetTopMargin(0.)#default=0.05
+                self.canvas.cd(2).SetBottomMargin(0.35)
                 self.canvas.cd(1)
             else :
                 self.canvas.Divide(1,1)
@@ -689,20 +688,24 @@ class plotter(object) :
             #if numHisto and denomHisto and numHisto.GetEntries() and denomHisto.GetEntries() :
             if numHisto and denomHisto :
                 ratio = utils.ratioHistogram(numHisto,denomHisto)
-                ratio.SetMinimum(0.8)
-                ratio.SetMaximum(1.2)
+                ratio.SetMinimum(0.0)
+                ratio.SetMaximum(2.0)
                 ratio.GetYaxis().SetTitle(numLabel+"/"+denomLabel)
                 self.canvas.cd(2)
                 adjustPad(r.gPad, self.anMode)
                 r.gPad.SetGridy()
                 if issubclass(type(ratio),r.TH1) : ratio.SetStats(False)
-                ratio.GetXaxis().SetLabelSize(0.0)
-                ratio.GetXaxis().SetTickLength(3.5*ratio.GetXaxis().GetTickLength())
-                ratio.GetYaxis().SetLabelSize(0.12)
+                ratio.GetXaxis().SetLabelSize(0.095)
+                ratio.GetXaxis().SetTickLength(2*ratio.GetXaxis().GetTickLength())
+                ratio.GetYaxis().SetTickLength(1.5*ratio.GetYaxis().GetTickLength())
+                ratio.GetYaxis().SetLabelSize(0.095)
                 ratio.GetYaxis().SetNdivisions(505,True)
-                ratio.GetXaxis().SetTitleOffset(0.2)
-                ratio.GetYaxis().SetTitleSize(0.15)
-                ratio.GetYaxis().SetTitleOffset([0.2,0.43][self.anMode])
+                ratio.GetYaxis().SetRangeUser(ratio.GetMinimum()+0.001,ratio.GetMaximum()-0.001)
+                ratio.GetXaxis().SetTitleOffset(1.4)
+                ratio.GetXaxis().SetTitleSize(0.12)
+                ratio.GetYaxis().SetTitleSize(0.12)
+                ratio.GetYaxis().SetTitleOffset([0.2,0.53][self.anMode])
+                ratio.GetYaxis().CenterTitle()
                 if len(denomHistos)==1: 
                     ratio.SetMarkerStyle(numHisto.GetMarkerStyle())
                     ratio.SetMarkerSize(numHisto.GetMarkerSize())
@@ -801,6 +804,7 @@ class plotter(object) :
             tps.SetY1NDC(0.70)
             tps.SetY2NDC(1.00)
 
+        '''
         if histo.GetName()=='ksLxy':
 			layers=[4.3,7.2,10.95] # pixel
 			layers+=[22.5,31.5,40.5,49.5,58.5] # inner strip barrel
@@ -809,7 +813,7 @@ class plotter(object) :
 			for i,layer in enumerate(layers):
 				val=histo.GetBinContent(histo.FindFixBin(layer))
 				l[i].DrawLine(layer, val*0.5,layer,val*2.)
-
+        '''
         return keep
 
     def lineDraw(self, name, offset, slope, histo, color = r.kBlack, suffix = "") :
