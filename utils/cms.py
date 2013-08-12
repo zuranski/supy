@@ -1,6 +1,6 @@
 import ROOT as r
 #####################################
-def cmsStamp(lumi = None, cms = True, preliminary = True, coords = (0.75, 0.5)) :
+def cmsStamp(lumi = None, cms = True, preliminary = True, simulation = False, coords = (0.75, 0.5)) :
     latex = r.TLatex()
     latex.SetNDC()
     size = 0.03
@@ -13,16 +13,19 @@ def cmsStamp(lumi = None, cms = True, preliminary = True, coords = (0.75, 0.5)) 
     slope = 1.1*size
     latex.SetTextAlign(21) #align center, bottom
 
+    cmsstr = "CMS%s"%(" Simulation"if simulation else " Preliminary" if preliminary else "")
+    sqrtsstr = "#sqrt{s} = 8 TeV"
     factor = 0.0
-    if lumi==None : latex.DrawLatex(x, y-factor*slope, "CMS%s%s"%(" Preliminary" if preliminary else "",', #sqrt{s} = 8 TeV'))
-    if lumi!=None :
-        latex.DrawLatex(x, y-factor*slope, "CMS%s"%(" Preliminary" if preliminary else "")); factor+=1.6
-        if lumi>1000 : 
-            lumi/=float(1000)
-            latex.DrawLatex(x, y-factor*slope,"#int L dt = %.1f fb^{-1}, #sqrt{s} = 8 TeV"%lumi); factor+=1.
-        else :
-            latex.DrawLatex(x, y-factor*slope,"#int L dt = %.0f pb^{-1}, #sqrt{s} = 8 TeV"%lumi); factor+=1.
-    #latex.DrawLatex(x, y-factor*slope, "#sqrt{s} = 7 TeV"); factor+=1.0
+    if lumi is None or simulation: latex.DrawLatex(x,y-factor*slope, cmsstr+", "+sqrtsstr)
+    else:
+        lumistr = "#int L dt = %.1f fb^{-1}"%(lumi/1000.) if lumi>1000 else "#int L dt = %.0f pb^{-1}"%lumi
+        if (not preliminary and not simulation): 
+           latex.DrawLatex(x,y-factor*slope, cmsstr+", "+sqrtsstr); factor+=1.8
+           latex.DrawLatex(x,y-factor*slope,lumistr)
+        else:
+           latex.DrawLatex(x,y-factor*slope, cmsstr); factor+=1.6
+           latex.DrawLatex(x,y-factor*slope, lumistr+", "+sqrtsstr)
+
 #####################################
 def cmsswFuncData(fileName = None, par = None) :
     if not fileName or not par: return None
