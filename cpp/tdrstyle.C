@@ -109,8 +109,8 @@ void setTDRStyle() {
 // For the axis titles:
 
   tdrStyle->SetTitleColor(1, "XYZ");
-  tdrStyle->SetTitleFont(62, "XYZ");
-  tdrStyle->SetTitleSize(0.05, "XYZ");
+  tdrStyle->SetTitleFont(42, "XYZ");
+  tdrStyle->SetTitleSize(0.055, "XYZ");
   // tdrStyle->SetTitleXSize(Float_t size = 0.02); // Another way to set the size?
   // tdrStyle->SetTitleYSize(Float_t size = 0.02);
   tdrStyle->SetTitleXOffset(1.1);
@@ -120,9 +120,9 @@ void setTDRStyle() {
 // For the axis labels:
 
   tdrStyle->SetLabelColor(1, "XYZ");
-  tdrStyle->SetLabelFont(62, "XYZ");
+  tdrStyle->SetLabelFont(42, "XYZ");
   tdrStyle->SetLabelOffset(0.007, "XYZ");
-  tdrStyle->SetLabelSize(0.04, "XYZ");
+  tdrStyle->SetLabelSize(0.045, "XYZ");
 
 // For the axis:
 
@@ -151,6 +151,12 @@ void setTDRStyle() {
   // tdrStyle->SetPalette(Int_t ncolors = 0, Int_t* colors = 0);
   // tdrStyle->SetTimeOffset(Double_t toffset);
   // tdrStyle->SetHistMinimumZero(kTRUE);
+
+
+// For the Legend
+  tdrStyle->SetLegendFont(42);
+// For the CMS stamp
+  tdrStyle->SetTextFont(42);
 
   tdrStyle->cd();
 

@@ -50,7 +50,7 @@ def tCanvasPrintPdf(canvas, fileName, verbose = True) :
     os.system("rm %s.eps"%fileName)
     if verbose : print "Output file: %s.pdf"%fileName
 #####################################
-def ratioHistogram( num, den, relErrMax=0.25) :
+def ratioHistogram( num, den, relErrMax=0.02) :
 
     def groupR(group) :
         N,D = [float(sum(hist.GetBinContent(i) for i in group)) for hist in [num,den]]

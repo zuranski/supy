@@ -336,7 +336,10 @@ class plotter(object) :
                 args["padNumber"] = pads[sampleName]
                 setTitles(histos, spec) #to allow for overwriting global title
             ratios = []
-            if self.plotRatios : 
+            if self.plotRatios :
+                histos[0].GetYaxis().SetTitleSize(0.066) 
+                histos[0].GetYaxis().SetTitleOffset(1.2) 
+                histos[0].GetYaxis().SetLabelSize(0.062) 
                 ratios = self.plotRatio(histos,1)
                 ratio = ratios[-1]
                 self.canvas.cd(2)
@@ -596,7 +599,7 @@ class plotter(object) :
             if not histo : continue
             if self.doLog :
                 histo.SetMinimum(0.5*globalMin) if self.pegMinimum==None else histo.SetMinimum(self.pegMinimum)
-                histo.SetMaximum(20*globalMax)
+                histo.SetMaximum(2*globalMax)
             else :
                 histo.SetMaximum(1.1*globalMax)
                 histo.SetMinimum(1.1*globalMin)# if globalMin<0 else 1e-4)
@@ -688,24 +691,27 @@ class plotter(object) :
             #if numHisto and denomHisto and numHisto.GetEntries() and denomHisto.GetEntries() :
             if numHisto and denomHisto :
                 ratio = utils.ratioHistogram(numHisto,denomHisto)
-                ratio.SetMinimum(0.0)
-                ratio.SetMaximum(2.0)
+                ratio.SetMinimum(0.8)
+                ratio.SetMaximum(1.2)
                 ratio.GetYaxis().SetTitle(numLabel+"/"+denomLabel)
                 self.canvas.cd(2)
                 adjustPad(r.gPad, self.anMode)
                 r.gPad.SetGridy()
                 if issubclass(type(ratio),r.TH1) : ratio.SetStats(False)
-                ratio.GetXaxis().SetLabelSize(0.095)
                 ratio.GetXaxis().SetTickLength(2*ratio.GetXaxis().GetTickLength())
                 ratio.GetYaxis().SetTickLength(1.5*ratio.GetYaxis().GetTickLength())
-                ratio.GetYaxis().SetLabelSize(0.095)
+                ratio.GetYaxis().SetLabelSize(0.13)
+                ratio.GetYaxis().SetTitle(ratio.GetYaxis().GetTitle()+" ")
+                ratio.GetYaxis().SetLabelOffset(0.015)
+                ratio.GetXaxis().SetLabelSize(0.13)
+                ratio.GetXaxis().SetLabelOffset(0.03)
                 ratio.GetYaxis().SetNdivisions(505,True)
                 ratio.GetYaxis().SetRangeUser(ratio.GetMinimum()+0.001,ratio.GetMaximum()-0.001)
-                ratio.GetXaxis().SetTitleOffset(1.4)
-                ratio.GetXaxis().SetTitleSize(0.12)
-                ratio.GetYaxis().SetTitleSize(0.12)
-                ratio.GetYaxis().SetTitleOffset([0.2,0.53][self.anMode])
-                ratio.GetYaxis().CenterTitle()
+                ratio.GetXaxis().SetTitleOffset(1.0)
+                ratio.GetYaxis().SetTitleSize(0.16)
+                ratio.GetXaxis().SetTitleSize(0.16)
+                ratio.GetYaxis().SetTitleOffset([0.2,0.5][self.anMode])
+                #ratio.GetYaxis().CenterTitle()
                 if len(denomHistos)==1: 
                     ratio.SetMarkerStyle(numHisto.GetMarkerStyle())
                     ratio.SetMarkerSize(numHisto.GetMarkerSize())
